@@ -1,0 +1,3 @@
+ANOVA <- aov(Ratio ~ Genotype * Timepoint, data = EDUBRN2Count2)
+summary(ANOVA)
+TukeyHSD(ANOVA,ordered=TRUE)
