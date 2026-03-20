@@ -8,7 +8,17 @@ DATASET$Timepoint <- ifelse(grepl("D120", DATASET$Image), "D120", "D90")
 DATASET$GenotypeTime <- factor(paste(DATASET$Genotype, DATASET$Timepoint, sep = "_"),
                                levels = c("Control_D90", "Control_D120",
                                           "Mutant_D90", "Mutant_D120")
+
+#Giving a colour to each batch
+DATASET <- DATASET %>%
+           mutate(Batch_Colour = case_when(
+                  grepl("Cal1", base_name) ~ "Blue",
+                  grepl("Ru1", base_name)  ~ "Yellow",
+                  grepl("Ru2", base_name)  ~ "Red",
+                  grepl("Ru3", base_name)  ~ "Green",
+                  TRUE ~ NA_character_))
 )
+
 #----Plots----
 boxplot(PositivePer ~ GenotypeTime,
           data = DATASET,
