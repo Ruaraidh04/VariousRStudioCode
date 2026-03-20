@@ -1,0 +1,10 @@
+#Average the three sections per slice into a new dataset for each staining combination - only works if each slice is unqiuely named which in the robust dataset they should be.
+library(dplyr)
+library(stringr)
+
+averaged_table <- DATASET %>% 
+                  mutate(base_name = str_remove(Image, " - TR[1-3]$")) %>%
+                  group_by(base_name) %>% 
+                  summarise(Avg_DAPI_EDU_PosPer = mean(DAPI_EDU_PosPer),
+                            Avg_DAPI_SATB2_PosPer = mean(DAPI_SATB2_PosPer),
+                            Avg_DAPI_CTIP2_PosPer = mean(DAPI_CTIP2_PosPer))
