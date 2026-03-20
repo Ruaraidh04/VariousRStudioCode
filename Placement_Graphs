@@ -1,23 +1,21 @@
-//DATASET manipulation//
-
-#making new columns to differentiate the data#
+#----DATASET manipulation----
+#making new columns to differentiate the data by genotype and timepoint
 DATASET$Genotype <- ifelse(grepl("E8|D5", DATASET$Image), "Mutant",
                     ifelse(grepl("NAS2S|NAS2M", DATASET$Image), "Control", NA))
-
 DATASET$Timepoint <- ifelse(grepl("D120", DATASET$Image), "D120", "D90")
 
-#factoring the dataset to the graph in a specific order#
+#factoring the dataset to the graph in a specific order
 DATASET$GenotypeTime <- factor(paste(DATASET$Genotype, DATASET$Timepoint, sep = "_"),
-                                     levels = c("Control_D90", "Control_D120",
-                                     "Mutant_D90", "Mutant_D120")
-                              )
-//Plots//
+                               levels = c("Control_D90", "Control_D120",
+                                          "Mutant_D90", "Mutant_D120")
+)
+#----Plots----
 boxplot(PositivePer ~ GenotypeTime,
-        data = DATASET,
-        main = "TITLE",
-        xlab = "Genotype / Timepoint",
-        ylab = "YAXIS"
-        )
+          data = DATASET,
+          main = "TITLE",
+          xlab = "Genotype / Timepoint",
+          ylab = "YAXIS"
+)
 
 stripchart(PositivePer ~ GenotypeTime,
            data = DATASET,
@@ -25,4 +23,4 @@ stripchart(PositivePer ~ GenotypeTime,
            pch = 16,
            col = "black",
            add = TRUE
-          )
+)
