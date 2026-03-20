@@ -7,4 +7,6 @@ averaged_table <- DATASET %>%
                   group_by(base_name) %>% 
                   summarise(Avg_DAPI_EDU_PosPer = mean(DAPI_EDU_PosPer),
                             Avg_DAPI_SATB2_PosPer = mean(DAPI_SATB2_PosPer),
-                            Avg_DAPI_CTIP2_PosPer = mean(DAPI_CTIP2_PosPer))
+                            Avg_DAPI_CTIP2_PosPer = mean(DAPI_CTIP2_PosPer),
+                            Avg_EDU_SATB2_PosPer = mean(EDU_SATB2_PosPer),
+                            Avg_EDU_CTIP2_PosPer = mean(EDU_CTIP2_PosPer))
