@@ -1,3 +1,5 @@
 ANOVA <- aov(Ratio ~ Genotype * Timepoint, data = EDUBRN2Count2)
 summary(ANOVA)
 TukeyHSD(ANOVA,ordered=TRUE)
+
+wilcox.test(Avg_EDU_CTIP2_PosPer ~ GenotypeTime, data = Avg_Final_SATB2CTIP2_Master)
