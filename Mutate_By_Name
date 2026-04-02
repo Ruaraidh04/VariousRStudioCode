@@ -1,10 +1,10 @@
 #Average the three sections per slice into a new dataset for each staining combination - only works if each slice is unqiuely named which in the robust dataset they should be.
 library(dplyr)
 library(stringr)
+library(openxlsx)
 
-#----DATASET manipulation----
-averaged_table <- DATASET %>% 
-                  mutate(base_name = str_remove(Image, " - TR[1-3]$")) %>%
+averaged_table <- SATB2CTIP2_Master %>% 
+                  mutate(base_name = str_remove(Image, " - TR[1-3]")) %>%
                   group_by(base_name) %>% 
                   summarise(Avg_DAPI_EDU_PosPer = mean(DAPI_EDU_PosPer),
                             Avg_DAPI_SATB2_PosPer = mean(DAPI_SATB2_PosPer),
@@ -12,22 +12,25 @@ averaged_table <- DATASET %>%
                             Avg_EDU_SATB2_PosPer = mean(EDU_SATB2_PosPer),
                             Avg_EDU_CTIP2_PosPer = mean(EDU_CTIP2_PosPer))
 
+#Make a graph in a new file for each combination - only PositivePer needs changed in the boxplot
+#----DATASET manipulation----
 #making new columns to differentiate the data by genotype and timepoint
-DATASET$Genotype <- ifelse(grepl("E8|D5", DATASET$Image), "Mutant",
-                    ifelse(grepl("NAS2S|NAS2M", DATASET$Image), "Control", NA))
-DATASET$Timepoint <- ifelse(grepl("D120", DATASET$Image), "D120", "D90")
+averaged_table$Genotype <- ifelse(grepl("E8|D5", averaged_table$base_name), "Mutant",
+                    ifelse(grepl("Nas2S|Nas2M", averaged_table$base_name), "Control", NA))
+averaged_table$Timepoint <- ifelse(grepl("D120", averaged_table$base_name), "D120", "D90")
 
 #factoring the dataset to the graph in a specific order
-DATASET$GenotypeTime <- factor(paste(DATASET$Genotype, DATASET$Timepoint, sep = "_"),
-                               levels = c("Control_D90", "Control_D120",
-                                          "Mutant_D90", "Mutant_D120")
+averaged_table$GenotypeTime <- factor(paste(averaged_table$Genotype, averaged_table$Timepoint, sep = "_"),
+                               levels = c("Control_D90", "Mutant_D90")
+)
 
 #Giving a colour to each batch
-DATASET <- DATASET %>%
+averaged_table <- averaged_table %>%
            mutate(Batch_Colour = case_when(
                   grepl("Cal1", base_name) ~ "Blue",
                   grepl("Ru1", base_name)  ~ "Yellow",
                   grepl("Ru2", base_name)  ~ "Red",
                   grepl("Ru3", base_name)  ~ "Green",
                   TRUE ~ NA_character_))
-)
+
+write.xlsx(averaged_table, file = "averaged_table.xlsx")
