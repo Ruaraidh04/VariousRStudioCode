@@ -22,3 +22,24 @@ ggplot(Avg_Final_SATB2CTIP2_Master, aes(x = GenotypeTime, y = Avg_EDU_CTIP2_PosP
        y = "Percentage %") +
   theme(plot.title = element_text(hjust = 0.5)
   )
+
+ggplot(Avg_D90_CCKi67_09_06_26, aes(x = Genotype, y = AvgHealthyPosPerKi67, fill = Genotype)) +
+  geom_boxplot() +
+  geom_jitter(
+    aes(shape = CellLine),
+    width = 0.2,
+    size = 2,
+    color = Avg_D90_CCKi67_09_06_26$Batch_Colour
+  ) +
+  scale_fill_manual(values = c(
+    "Control" = "lightblue",
+    "Mutant" = "lightgreen"
+  )) +
+  scale_shape_manual(values = c(
+    "E" = 16,
+    "D" = 17,
+    "S" = 18,
+    "M" = 15
+  )) +
+  theme_classic()
+
