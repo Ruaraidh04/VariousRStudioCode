@@ -1,0 +1,217 @@
+# --- Notes ---
+#AnalysisData must be saved as 'Frame', 'Max_Grey', 'Name'
+#Name variable must be 'Group-Batch-Coverslip-Annotation'
+#It seems like the movement of the cells produces a decrease in Max_Grey regardless of always capturing the neuron 
+#Hard to know what errors there are in the code, we might have to just run it and review
+#Include in project report: the code for transparency and size of the dataset analysed for signalling.
+#Data robustness = addressed through comparison of individual analysis (Laura results vs mine)  
+#Do 20cells per coverslip to start then build from there
+#You cannot assume that the width of a peak in your calcium-imaging data represents the duration of an action potential - 600ms/3frames for now.
+#talk about limtiations of Ca2+ imaging for high throughput analysis and talk about how to address them - microdevice for individual stable cells.
+
+#TODO annotate only good, clear cells, get all the data corroborated and present what it's looking like so far so I can decide what my plan is for the rest of the project
+
+library(dplyr)
+library(ggplot2)
+
+Data <- MasterDataset
+
+#Split main dataset into individual annotations and calculate Delta_F
+SplitData <- lapply(
+  split(Data, Data$Name), 
+  function(df) { 
+    mutate(
+      df,
+      F0 = mean(Max_Grey[1:15]),
+      Delta_F = (Max_Grey - F0)/F0,
+      Group = ifelse(grepl("iMacs", Name), "Damaged_iMacs",
+              ifelse(grepl("Damaged", Name), "Damaged",
+              ifelse(grepl("Healthy", Name), "Healthy", "NA"))),
+      Threshold = mean(Delta_F[1:15]) + (3 * sd(Delta_F[1:15]))
+      )
+   }
+)
+
+#Plot Delta_F traces for each annotation
+Traces <- lapply(
+  SplitData, 
+  function(df) {
+    ggplot(
+      df, 
+      aes(x = Frame, y = Delta_F)
+    ) +
+      geom_line() +
+      labs(title = df$Name[1])
+  }
+)
+
+Traces
+
+#Do traces with threshold level noted and values above threshold traced as blue
+BlueTraces <- lapply(
+  SplitData, 
+  function(df) {
+    ggplot(
+      df, 
+      aes(x = Frame, y = Delta_F)
+    ) +
+      geom_line() +
+      geom_hline(
+        yintercept = df$Threshold[1],
+        linetype = "dashed",
+        colour = "red"
+      ) +
+      geom_point(
+        data = df[df$Delta_F >= df$Threshold, ],
+        colour = "blue"
+      ) +
+      labs(title = df$Name[1])
+  }
+)
+
+BlueTraces
+
+#Identify action potential firing for each annotation
+PeakData <- lapply(
+  SplitData, 
+  function(df) {
+    
+    SD <- sd(df$Delta_F[1:15])
+    Mean_DeltaF <- mean(df$Delta_F[1:15])
+    Threshold <- (Mean_DeltaF + (3 * SD))#this is a re-calculation that could be optimised
+    
+    Peaks <- which(df$Frame <= 600 &
+                   df$Delta_F >= Threshold &
+                   df$Delta_F == data.table::frollmax(
+                   df$Delta_F, n = 5, align = "center"#previously 21
+                     )
+    )
+    
+    PeakFrames <- df[Peaks, ]#all peaks within an annotation
+    
+    PeakFrameCounts <- data.frame(
+      Count = nrow(PeakFrames),
+      Name = df$Name[1]
+    )
+    
+    list(
+      PeakFrames = PeakFrames,
+      PeakFrameCounts = PeakFrameCounts
+    )
+  })
+
+PeakFrames <- bind_rows(
+  lapply(PeakData, `[[`, "PeakFrames")
+)
+
+PeakFrameCounts <- bind_rows(
+  lapply(PeakData, `[[`, "PeakFrameCounts")
+)
+
+PeakFrameCounts
+
+#Extract the wave-forms of each axon potential for each annotation
+WaveformData <- list()
+
+for (counter in seq_along(SplitData)) {
+  
+  InitialSplit <- SplitData[[counter]]
+  PeakSplit <- PeakData[[counter]]$PeakFrames#for each annotation, 
+  Waveforms <- list()
+  
+  for (i in seq_len(nrow(PeakSplit))) {
+    
+    x = PeakSplit$Frame[i]
+    right = x + 1
+    
+    while (right <= nrow(InitialSplit) &&
+           round(InitialSplit$Delta_F[right], 1) != 0.0) {
+      right = right + 1
+    }
+    
+    left = x - 1
+    while (left >= 1 &&
+           round(InitialSplit$Delta_F[left], 1) != 0.0) {
+      left <- left - 1
+    }
+    
+    left = left - 1
+    right = right +1
+    Waveforms[[i]] <- InitialSplit[left:right, ]
+
+  }
+
+  WaveformData[[counter]] <- Waveforms
+}
+
+WaveformData#full waveforms of each AP stored as AP1, AP2, AP3 within each annotation
+
+#apply axon potential length threshold - produces a dataset for each threshold AP trace
+ThresholdAPs <- list()
+
+for (counter in seq_along(WaveformData)) {
+  
+  for (i in seq_along(WaveformData[[counter]])) {
+
+    if (nrow(WaveformData[[counter]][[i]]) >= 10) {
+      
+      ThresholdAPs[[length(ThresholdAPs) + 1]] <- WaveformData[[counter]][[i]]
+    }
+  }
+}
+
+#make blue/black graph for true APs
+
+#count AP traces across datasets
+iMacsCount = 0
+DamagedCount = 0
+HealthyCount = 0
+NACount = 0
+
+for (counter in seq_along(ThresholdAPs)) {
+  
+  Group <- ThresholdAPs[[counter]]$Group[1]
+  
+  if (Group == "Damaged_iMacs"){
+    iMacsCount = iMacsCount + 1
+    
+  } else if (Group == "Damaged") {
+    DamagedCount = DamagedCount + 1
+    
+  } else if (Group == "Healthy") {
+    HealthyCount = HealthyCount + 1
+    
+  } else {
+    NACount = NACount + 1
+  }
+}
+                  
+WaveformCounts <- data.frame(
+  Group = c("Damaged_iMacs", "Damaged", "Healthy", "NA"),
+  Count = c(iMacsCount, DamagedCount, HealthyCount, NACount)
+)
+
+WaveformCounts
+
+ggplot(WaveformCounts, aes(x = Group, y = Count)) +
+  geom_col()
+
+#
+#
+#
+#
+
+#Waveform analysis
+IndWaves <- lapply(Waveforms, function(df) {
+  plot(df$Frame,
+       df$Delta_F,
+       type = "l",
+       xlab = "Frame",
+       ylab = "Delta_F")
+})
+
+#produce a hard copy of all the data-sets used at the end for quality control
+for (i in seq_along(Traces)) {
+  ggsave(paste0("Trace_", i, ".png"), Traces[[i]])
+}
+#conduct quality control then done! That's it. - correlation
