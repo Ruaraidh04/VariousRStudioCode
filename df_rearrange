@@ -1,0 +1,23 @@
+library(dplyr)
+library(tidyr)
+library(writexl)
+library(openxlsx)
+
+df <- Group_Batch_Coverslip
+SaveFolder <- r"(C:\Users\ruara\Documents\Y5\L4_Project\DataProcessingFolder\DataProcessing171126\InitialCSVs\SubsequentExcels\RearrangedExcels)"
+
+reordered_df <- df %>%
+  pivot_longer(
+    cols = -Frame,
+    names_to = c(".value", "Name"),
+    names_pattern = "(Min|Max)\\((.*)\\)"
+  )
+
+#add file name to annotation name
+FileName <- file.choose()
+FileName <- tools::file_path_sans_ext(basename(FileName))
+reordered_df <- reordered_df %>%
+  mutate(Name = paste(FileName, Name, sep = "-"))
+
+#save file
+write_xlsx(reordered_df, path = file.path(SaveFolder, paste0(FileName, "-Rearranged.xlsx")))
